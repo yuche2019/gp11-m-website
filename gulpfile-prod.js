@@ -11,7 +11,8 @@ const {
 const path = require('path')//引入nodejs内置的路径工具包
 const rev = require('gulp-rev')
 const revCollector = require ('gulp-rev-collector')
-
+const webpackStream = require('webpack-stream')
+const gulpSass = require('gulp-sass')
 
 //拷贝 index.html 到 dev 根目录下
 //任务的回调一定要有返回值，返回值全部都是异步操作
@@ -27,62 +28,76 @@ function copyhtml() {
 }
 
 function copylibs() {
-
+    return src('./src/libs/**/*')
+    .pipe(dest('./dist/libs'))
 }
 
 function copyimages() {
-
+    return src('./src/images/**/*')
+    .pipe(dest('./dist/images'))
 }
 
 function copyicons() {
-
+    return src('./src/icons/**/*')
+    .pipe(dest('./dist/icons'))
 }
 
 
 
 //编译JS模块
 function packjs() {
-    return src('./src/app.js')
+    return src('./src/**/*')
         .pipe(webpackStream({
-            mode: 'production',//开发环境  production 生产环境
+            mode: 'production',//生产环境
             entry: {//入口
                 app: './src/app.js'
             },
             output: {//出口
                 filename: '[name].js',  //[name] = app   入口的key
-                path: path.resolve(__dirname, './dev/')//绝对路径
+                path: path.resolve(__dirname, './dist/')//绝对路径
             },
             //将ES6-ES8 代码转换成 ES5
             module: {
                 rules: [
                     {
-                        test: /\.m?js$/,
-                        exclude: /(node_modules|bower_components)/,
+                        test: /\.js$/,
+                        exclude: /node_modules/,
                         use: {
                             loader: 'babel-loader',
                             options: {
-                                presets: ['@babel/preset-env']//预设，相当于ES6转成ES5的字典
-                                
+                                presets: ['@babel/preset-env'],//预设，相当于ES6转成ES5的字典
+                                plugins: ['@babel/plugin-transform-runtime']
                             }
                         }
+                    },
+                    {
+                        test: /\.html$/,
+                        loader: 'string-loader'
                     }
                 ]
             } 
         }))
-        .pipe(dest('./dev/scripts'))
+        .pipe(rev())
+        .pipe(dest('./dist/scripts'))
+        .pipe(rev.manifest())
+        .pipe(dest('./dist/scripts'))
 }
 
 function revColl() {
     return src(['./rev/**/*.json', './dist/*.html'])
+        .pipe(revCollector())
+        .pipe(dest('./dist'))
 }
 
 function packCSS() {
     return src('./src/styles/app.scss')
-        .pipe(gulpSass().on('error', guloSass.logError))
-        .pipe(dest('./dev/styles'))
+        .pipe(gulpSass().on('error', gulpSass.logError))
+        .pipe(rev())
+        .pipe(dest('./dist/styles'))
+        .pipe(rev.manifest())
+        .pipe(dest('./rev/styles'))
 }
 
 // gulp.task('default',gulp.series('copyhtml'))
 //私有任务和公有任务，公有任务需要在exports里显式的定义
-exports.webserver = series(webserver)
-exports.default = series( parallel(packjs, packCSS,copylibs,copyimages,copyicons), copyhtml, rev)
+exports.default = series( parallel(packjs, packCSS,copylibs,copyimages,copyicons), copyhtml, revColl)

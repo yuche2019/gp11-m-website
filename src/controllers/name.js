@@ -1,4 +1,4 @@
-module.exports = 'zhaoqian'
+// module.exports = 'zhaoqian'
 //export const name = 'zhaoqian'
 
 module.exports = {

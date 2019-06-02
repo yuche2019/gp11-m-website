@@ -1,5 +1,4 @@
-@import './modules/color.scss';
+@import './yo/usage/core/reset.scss';
 
-body {
-    background: $base_color;
-}
+@import './modules/index/laylout.scss';
+
